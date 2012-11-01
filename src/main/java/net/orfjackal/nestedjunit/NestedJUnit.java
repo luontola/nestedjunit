@@ -81,14 +81,17 @@ public class NestedJUnit extends ParentRunner<Runner> {
         return false;
     }
 
+    @Override
     protected List<Runner> getChildren() {
         return children;
     }
 
+    @Override
     protected Description describeChild(Runner child) {
         return child.getDescription();
     }
 
+    @Override
     protected void runChild(Runner child, RunNotifier notifier) {
         child.run(notifier);
     }
@@ -102,6 +105,12 @@ public class NestedJUnit extends ParentRunner<Runner> {
             super(childClass);
         }
 
+        @Override
+        protected void validateNoNonStaticInnerClass(List<Throwable> errors) {
+            // disable default validation; our inner classes are non-static
+        }
+
+        @Override
         protected void validateConstructor(List<Throwable> errors) {
             validateOnlyOneConstructor(errors);
             validateNonStaticInnerClassWithDefaultConstructor(errors);
@@ -116,11 +125,13 @@ public class NestedJUnit extends ParentRunner<Runner> {
             }
         }
 
+        @Override
         protected Object createTest() throws Exception {
             parentOfCurrentTest = parentTestClass.getJavaClass().newInstance();
             return getTestClass().getOnlyConstructor().newInstance(parentOfCurrentTest);
         }
 
+        @Override
         protected Statement methodBlock(FrameworkMethod method) {
             Statement statement = super.methodBlock(method);
             statement = withParentBefores(statement);
@@ -146,10 +157,12 @@ public class NestedJUnit extends ParentRunner<Runner> {
             description = Description.createTestDescription(testClass, "<no tests>");
         }
 
+        @Override
         public Description getDescription() {
             return description;
         }
 
+        @Override
         public void run(RunNotifier notifier) {
             notifier.fireTestIgnored(description);
         }
