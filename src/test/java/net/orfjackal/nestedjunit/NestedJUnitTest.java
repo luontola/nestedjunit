@@ -29,6 +29,34 @@ public class NestedJUnitTest {
     }
 
 
+    @Ignore("not implemented") // TODO
+    @Test
+    public void level_1_nesting() throws Exception {
+        Result result = junit.run(new NestedJUnit(Level1Nesting.class));
+
+        assertThat("success", result.wasSuccessful(), is(true));
+        assertThat(spy, is(Arrays.asList("L1 before", "L1 test", "L1 after")));
+    }
+
+    public static class Level1Nesting {
+
+        @Before
+        public void before() {
+            spy.add("L1 before");
+        }
+
+        @After
+        public void after() {
+            spy.add("L1 after");
+        }
+
+        @Test
+        public void foo() {
+            spy.add("L1 test");
+        }
+    }
+
+
     @Test
     public void level_2_nesting() throws Exception {
         Result result = junit.run(new NestedJUnit(Level2Nesting.class));
