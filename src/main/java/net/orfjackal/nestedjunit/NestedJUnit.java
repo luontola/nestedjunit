@@ -18,7 +18,7 @@ import java.util.*;
  * Allows organizing JUnit 4 tests into member classes. This makes it possible
  * to write tests in a more Behaviour-Driven Development (BDD) style:
  * <pre><code>
- * &#64;RunWith(NestedJUnit4.class)
+ * &#64;RunWith(NestedJUnit.class)
  * public class WerewolfTest extends Assert {
  *     public class Given_the_moon_is_full {
  *         &#64;Before public void When_you_walk_in_the_woods() {
@@ -47,12 +47,12 @@ import java.util.*;
  *
  * @author Esko Luontola
  */
-public class NestedJUnit4 extends ParentRunner<Runner> {
+public class NestedJUnit extends ParentRunner<Runner> {
 
     private final TestClass parentTestClass;
     private final List<Runner> children = new ArrayList<Runner>();
 
-    public NestedJUnit4(Class<?> testClass) throws InitializationError {
+    public NestedJUnit(Class<?> testClass) throws InitializationError {
         super(testClass);
         parentTestClass = new TestClass(testClass);
         addToChildrenAllNestedClassesWithTests(testClass);
