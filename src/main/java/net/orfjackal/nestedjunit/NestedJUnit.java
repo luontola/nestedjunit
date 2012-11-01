@@ -51,10 +51,17 @@ public class NestedJUnit extends ParentRunner<Runner> {
 
     private final TestClass parentTestClass;
     private final List<Runner> children = new ArrayList<Runner>();
+    private final BlockJUnit4ClassRunner parent;
 
     public NestedJUnit(Class<?> testClass) throws InitializationError {
         super(testClass);
         parentTestClass = new TestClass(testClass);
+        parent = new BlockJUnit4ClassRunner(testClass) {
+            @Override
+            protected void validateInstanceMethods(List<Throwable> errors) {
+                // disable; don't fail if has no test methods
+            }
+        };
         addToChildrenAllNestedClassesWithTests(testClass);
 
         // If there are no children, then IntelliJ IDEA's test runner will get confused
@@ -79,6 +86,13 @@ public class NestedJUnit extends ParentRunner<Runner> {
             }
         }
         return false;
+    }
+
+    @Override
+    public void run(RunNotifier notifier) {
+        // XXX: these use different Description instances, so IDEA doesn't nest the tests nicely when mixing level 1 and 2 tests
+        parent.run(notifier);
+        super.run(notifier);
     }
 
     @Override

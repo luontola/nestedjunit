@@ -29,15 +29,15 @@ public class NestedJUnitTest {
     }
 
 
-    @Ignore("not implemented") // TODO
     @Test
     public void level_1_nesting() throws Exception {
-        Result result = junit.run(new NestedJUnit(Level1Nesting.class));
+        Result result = junit.run(Level1Nesting.class);
 
         assertThat("success", result.wasSuccessful(), is(true));
         assertThat(spy, is(Arrays.asList("L1 before", "L1 test", "L1 after")));
     }
 
+    @RunWith(NestedJUnit.class)
     public static class Level1Nesting {
 
         @Before
@@ -59,12 +59,13 @@ public class NestedJUnitTest {
 
     @Test
     public void level_2_nesting() throws Exception {
-        Result result = junit.run(new NestedJUnit(Level2Nesting.class));
+        Result result = junit.run(Level2Nesting.class);
 
         assertThat("success", result.wasSuccessful(), is(true));
         assertThat(spy, is(Arrays.asList("L1 before", "L2 before", "L2 test", "L2 after", "L1 after")));
     }
 
+    @RunWith(NestedJUnit.class)
     public static class Level2Nesting {
 
         @Before
@@ -95,4 +96,6 @@ public class NestedJUnitTest {
             }
         }
     }
+
+    // TODO: level 3 (arbitrary) nesting
 }
