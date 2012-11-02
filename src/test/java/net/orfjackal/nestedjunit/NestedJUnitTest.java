@@ -62,37 +62,44 @@ public class NestedJUnitTest {
         Result result = junit.run(Level2Nesting.class);
 
         assertThat("success", result.wasSuccessful(), is(true));
-        assertThat(spy, is(Arrays.asList("L1 before", "L2 before", "L2 test", "L2 after", "L1 after")));
+        assertThat(spy, is(Arrays.asList("L1 before 1", "L2 before 2", "L2 test 3", "L2 after 4", "L1 after 5")));
     }
 
     @RunWith(NestedJUnit.class)
     public static class Level2Nesting {
 
+        private int shared = 0;
+
         @Before
         public void before() {
-            spy.add("L1 before");
+            shared++;
+            spy.add("L1 before " + shared);
         }
 
         @After
         public void after() {
-            spy.add("L1 after");
+            shared++;
+            spy.add("L1 after " + shared);
         }
 
         public class Foo {
 
             @Before
             public void before() {
-                spy.add("L2 before");
+                shared++;
+                spy.add("L2 before " + shared);
             }
 
             @After
             public void after() {
-                spy.add("L2 after");
+                shared++;
+                spy.add("L2 after " + shared);
             }
 
             @Test
             public void foo() {
-                spy.add("L2 test");
+                shared++;
+                spy.add("L2 test " + shared);
             }
         }
     }
