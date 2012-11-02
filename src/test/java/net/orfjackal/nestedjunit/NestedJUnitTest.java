@@ -11,7 +11,7 @@ import org.junit.runner.*;
 import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class NestedJUnitTest {
 
@@ -103,6 +103,60 @@ public class NestedJUnitTest {
             }
         }
     }
+
+
+    @Test
+    public void descriptions_of_both_level_1_and_2_tests_are_in_the_same_tree() throws Exception {
+        NestedJUnit runner = new NestedJUnit(MultipleLevels.class);
+
+        Description level1 = runner.getDescription();
+
+        assertThat(level1.getDisplayName(), is(MultipleLevels.class.getName()));
+        assertThat(level1.getChildren(), containsInAnyOrder(
+                Description.createTestDescription(MultipleLevels.class, "level_1_test_1"),
+                Description.createTestDescription(MultipleLevels.class, "level_1_test_2"),
+                Description.createSuiteDescription(MultipleLevels.Level2.class))
+        );
+
+        Description level2 = findChild(level1, MultipleLevels.Level2.class);
+        assertThat(level2.getChildren(), is(containsInAnyOrder(
+                Description.createTestDescription(MultipleLevels.Level2.class, "level_2_test_1"),
+                Description.createTestDescription(MultipleLevels.Level2.class, "level_2_test_2")
+        )));
+    }
+
+    private static Description findChild(Description haystack, Class<MultipleLevels.Level2> needle) {
+        for (Description desc : haystack.getChildren()) {
+            if (desc.getTestClass().equals(needle)) {
+                return desc;
+            }
+        }
+        throw new AssertionError("Did not find " + needle + " in " + haystack);
+    }
+
+    @RunWith(NestedJUnit.class)
+    public static class MultipleLevels {
+
+        @Test
+        public void level_1_test_1() {
+        }
+
+        @Test
+        public void level_1_test_2() {
+        }
+
+        public class Level2 {
+
+            @Test
+            public void level_2_test_1() {
+            }
+
+            @Test
+            public void level_2_test_2() {
+            }
+        }
+    }
+
 
     // TODO: level 3 (arbitrary) nesting
 }

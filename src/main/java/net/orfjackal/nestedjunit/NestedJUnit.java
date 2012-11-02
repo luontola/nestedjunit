@@ -47,75 +47,91 @@ import java.util.*;
  *
  * @author Esko Luontola
  */
-public class NestedJUnit extends ParentRunner<Runner> {
+public class NestedJUnit extends Runner {
 
     private final TestClass parentTestClass;
-    private final List<Runner> children = new ArrayList<Runner>();
-    private final BlockJUnit4ClassRunner parent;
+    private final BlockJUnit4ClassRunner level1;
+    private final NestedParentRunner level2;
+    private final Description description;
 
     public NestedJUnit(Class<?> testClass) throws InitializationError {
-        super(testClass);
         parentTestClass = new TestClass(testClass);
-        parent = new BlockJUnit4ClassRunner(testClass) {
+        level1 = new BlockJUnit4ClassRunner(testClass) {
             @Override
             protected void validateInstanceMethods(List<Throwable> errors) {
                 // disable; don't fail if has no test methods
             }
         };
-        addToChildrenAllNestedClassesWithTests(testClass);
 
-        // If there are no children, then IntelliJ IDEA's test runner will get confused
-        // and report the tests as still being executed and the progress bar will be buggy.
-        if (children.size() == 0) {
-            children.add(new NoTestsRunner(testClass));
-        }
-    }
+        level2 = new NestedParentRunner(testClass);
 
-    private void addToChildrenAllNestedClassesWithTests(Class<?> testClass) throws InitializationError {
-        for (Class<?> child : testClass.getDeclaredClasses()) {
-            if (containsTests(child)) {
-                children.add(new NestedJUnit4ClassRunner(child));
-            }
+        description = level1.getDescription();
+        for (Description child : level2.getDescription().getChildren()) {
+            description.addChild(child);
         }
-    }
 
-    private boolean containsTests(Class<?> clazz) {
-        for (Method method : clazz.getMethods()) {
-            if (method.getAnnotation(Test.class) != null) {
-                return true;
-            }
-        }
-        return false;
+        // TODO: raise an exception if there are no tests in any of the levels
     }
 
     @Override
     public void run(RunNotifier notifier) {
-        // XXX: these use different Description instances, so IDEA doesn't nest the tests nicely when mixing level 1 and 2 tests
-        parent.run(notifier);
-        super.run(notifier);
+        level1.run(notifier);
+        level2.run(notifier);
     }
 
     @Override
-    protected List<Runner> getChildren() {
-        return children;
-    }
-
-    @Override
-    protected Description describeChild(Runner child) {
-        return child.getDescription();
-    }
-
-    @Override
-    protected void runChild(Runner child, RunNotifier notifier) {
-        child.run(notifier);
+    public Description getDescription() {
+        return description;
     }
 
 
-    private class NestedJUnit4ClassRunner extends BlockJUnit4ClassRunner {
+    private class NestedParentRunner extends ParentRunner<Runner> {
+
+        private final List<Runner> children = new ArrayList<Runner>();
+
+        public NestedParentRunner(Class<?> testClass) throws InitializationError {
+            super(testClass);
+            addToChildrenAllNestedClassesWithTests(testClass);
+        }
+
+        private void addToChildrenAllNestedClassesWithTests(Class<?> testClass) throws InitializationError {
+            for (Class<?> child : testClass.getDeclaredClasses()) {
+                if (containsTests(child)) {
+                    children.add(new NestedRunner(child));
+                }
+            }
+        }
+
+        private boolean containsTests(Class<?> clazz) {
+            for (Method method : clazz.getMethods()) {
+                if (method.getAnnotation(Test.class) != null) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        protected List<Runner> getChildren() {
+            return children;
+        }
+
+        @Override
+        protected Description describeChild(Runner child) {
+            return child.getDescription();
+        }
+
+        @Override
+        protected void runChild(Runner child, RunNotifier notifier) {
+            child.run(notifier);
+        }
+    }
+
+    private class NestedRunner extends BlockJUnit4ClassRunner {
 
         private Object parentOfCurrentTest;
 
-        public NestedJUnit4ClassRunner(Class<?> childClass) throws InitializationError {
+        public NestedRunner(Class<?> childClass) throws InitializationError {
             super(childClass);
         }
 
@@ -161,24 +177,6 @@ public class NestedJUnit extends ParentRunner<Runner> {
         private Statement withParentAfters(Statement statement) {
             List<FrameworkMethod> afters = parentTestClass.getAnnotatedMethods(After.class);
             return afters.isEmpty() ? statement : new RunAfters(statement, afters, parentOfCurrentTest);
-        }
-    }
-
-    private static class NoTestsRunner extends Runner {
-        private final Description description;
-
-        public NoTestsRunner(Class<?> testClass) {
-            description = Description.createTestDescription(testClass, "<no tests>");
-        }
-
-        @Override
-        public Description getDescription() {
-            return description;
-        }
-
-        @Override
-        public void run(RunNotifier notifier) {
-            notifier.fireTestIgnored(description);
         }
     }
 }
