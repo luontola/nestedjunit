@@ -159,4 +159,6 @@ public class NestedJUnitTest {
 
 
     // TODO: level 3 (arbitrary) nesting
+    // TODO: raise an exception if there are no tests in any of the levels
+    // TODO: execute rules from level 1 around level 2
 }

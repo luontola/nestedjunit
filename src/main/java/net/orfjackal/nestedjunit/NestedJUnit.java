@@ -56,21 +56,19 @@ public class NestedJUnit extends Runner {
 
     public NestedJUnit(Class<?> testClass) throws InitializationError {
         parentTestClass = new TestClass(testClass);
+
         level1 = new BlockJUnit4ClassRunner(testClass) {
             @Override
             protected void validateInstanceMethods(List<Throwable> errors) {
                 // disable; don't fail if has no test methods
             }
         };
-
         level2 = new NestedParentRunner(testClass);
 
         description = level1.getDescription();
         for (Description child : level2.getDescription().getChildren()) {
             description.addChild(child);
         }
-
-        // TODO: raise an exception if there are no tests in any of the levels
     }
 
     @Override
