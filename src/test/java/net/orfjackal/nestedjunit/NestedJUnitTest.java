@@ -6,7 +6,9 @@ package net.orfjackal.nestedjunit;
 
 import org.junit.*;
 import org.junit.internal.TextListener;
+import org.junit.rules.TestRule;
 import org.junit.runner.*;
+import org.junit.runners.model.Statement;
 
 import java.util.*;
 
@@ -158,7 +160,59 @@ public class NestedJUnitTest {
     }
 
 
+    @Ignore("not implemented") // TODO
+    @Test
+    public void evaluates_rules_from_all_levels() {
+        Result result = junit.run(RulesOnAllLevels.class);
+
+        assertThat("success", result.wasSuccessful(), is(true));
+        assertThat(spy, is(Arrays.asList("R1 start", "R2 start", "L2 test", "R2 end", "L2 end")));
+    }
+
+    @RunWith(NestedJUnit.class)
+    public static class RulesOnAllLevels {
+
+        @Rule
+        public SpyRule rule1 = new SpyRule("R1 start", "R1 end");
+
+        public class Foo {
+
+            @Rule
+            public SpyRule rule2 = new SpyRule("R2 start", "R2 end");
+
+            @Test
+            public void foo() {
+                spy.add("L2 test");
+            }
+        }
+    }
+
+    private static class SpyRule implements TestRule {
+        private final String startMessage;
+        private final String endMessage;
+
+        public SpyRule(String startMessage, String endMessage) {
+            this.startMessage = startMessage;
+            this.endMessage = endMessage;
+        }
+
+        @Override
+        public Statement apply(final Statement base, Description description) {
+            return new Statement() {
+                @Override
+                public void evaluate() throws Throwable {
+                    spy.add(startMessage);
+                    try {
+                        base.evaluate();
+                    } finally {
+                        spy.add(endMessage);
+                    }
+                }
+            };
+        }
+    }
+
+
     // TODO: level 3 (arbitrary) nesting
     // TODO: raise an exception if there are no tests in any of the levels
-    // TODO: execute rules from level 1 around level 2
 }
