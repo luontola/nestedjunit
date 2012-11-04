@@ -49,21 +49,18 @@ import java.util.*;
  */
 public class NestedJUnit extends Runner {
 
-    private final TestClass parentTestClass;
     private final BlockJUnit4ClassRunner level1;
     private final NestedParentRunner level2;
     private final Description description;
 
     public NestedJUnit(Class<?> testClass) throws InitializationError {
-        parentTestClass = new TestClass(testClass);
-
         level1 = new BlockJUnit4ClassRunner(testClass) {
             @Override
             protected void validateInstanceMethods(List<Throwable> errors) {
                 // disable; don't fail if has no test methods
             }
         };
-        level2 = new NestedParentRunner(testClass);
+        level2 = new NestedParentRunner(level1.getTestClass(), testClass);
 
         description = level1.getDescription();
         for (Description child : level2.getDescription().getChildren()) {
@@ -86,16 +83,18 @@ public class NestedJUnit extends Runner {
     private class NestedParentRunner extends ParentRunner<Runner> {
 
         private final List<Runner> children = new ArrayList<Runner>();
+        private final TestClass parent;
 
-        public NestedParentRunner(Class<?> testClass) throws InitializationError {
+        public NestedParentRunner(TestClass parent, Class<?> testClass) throws InitializationError {
             super(testClass);
+            this.parent = parent;
             addToChildrenAllNestedClassesWithTests(testClass);
         }
 
         private void addToChildrenAllNestedClassesWithTests(Class<?> testClass) throws InitializationError {
             for (Class<?> child : testClass.getDeclaredClasses()) {
                 if (containsTests(child)) {
-                    children.add(new NestedRunner(child));
+                    children.add(new NestedRunner(parent, child));
                 }
             }
         }
@@ -127,10 +126,12 @@ public class NestedJUnit extends Runner {
 
     private class NestedRunner extends BlockJUnit4ClassRunner {
 
-        private Object parentOfCurrentTest;
+        private final TestClass parentClass;
+        private Object parent;
 
-        public NestedRunner(Class<?> childClass) throws InitializationError {
-            super(childClass);
+        public NestedRunner(TestClass parentClass, Class<?> testClass) throws InitializationError {
+            super(testClass);
+            this.parentClass = parentClass;
         }
 
         @Override
@@ -139,24 +140,14 @@ public class NestedJUnit extends Runner {
         }
 
         @Override
-        protected void validateConstructor(List<Throwable> errors) {
-            validateOnlyOneConstructor(errors);
-            validateNonStaticInnerClassWithDefaultConstructor(errors);
-        }
-
-        private void validateNonStaticInnerClassWithDefaultConstructor(List<Throwable> errors) {
-            try {
-                getTestClass().getJavaClass().getConstructor(parentTestClass.getJavaClass());
-            } catch (NoSuchMethodException e) {
-                String gripe = "Nested test classes should be non-static and have a public zero-argument constructor";
-                errors.add(new Exception(gripe));
-            }
+        protected void validateZeroArgConstructor(List<Throwable> errors) {
+            // disable default validation; our inner classes take the outer class as parameter
         }
 
         @Override
         protected Object createTest() throws Exception {
-            parentOfCurrentTest = parentTestClass.getJavaClass().newInstance();
-            return getTestClass().getOnlyConstructor().newInstance(parentOfCurrentTest);
+            parent = parentClass.getJavaClass().newInstance();
+            return getTestClass().getOnlyConstructor().newInstance(parent);
         }
 
         @Override
@@ -168,13 +159,13 @@ public class NestedJUnit extends Runner {
         }
 
         private Statement withParentBefores(Statement statement) {
-            List<FrameworkMethod> befores = parentTestClass.getAnnotatedMethods(Before.class);
-            return befores.isEmpty() ? statement : new RunBefores(statement, befores, parentOfCurrentTest);
+            List<FrameworkMethod> befores = parentClass.getAnnotatedMethods(Before.class);
+            return befores.isEmpty() ? statement : new RunBefores(statement, befores, parent);
         }
 
         private Statement withParentAfters(Statement statement) {
-            List<FrameworkMethod> afters = parentTestClass.getAnnotatedMethods(After.class);
-            return afters.isEmpty() ? statement : new RunAfters(statement, afters, parentOfCurrentTest);
+            List<FrameworkMethod> afters = parentClass.getAnnotatedMethods(After.class);
+            return afters.isEmpty() ? statement : new RunAfters(statement, afters, parent);
         }
     }
 }
