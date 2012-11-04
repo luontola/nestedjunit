@@ -4,8 +4,7 @@
 
 package net.orfjackal.nestedjunit;
 
-import org.junit.*;
-import org.junit.internal.runners.statements.*;
+import org.junit.Test;
 import org.junit.runner.*;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.*;
@@ -94,7 +93,7 @@ public class NestedJUnit extends Runner {
         private void addToChildrenAllNestedClassesWithTests(Class<?> testClass) throws InitializationError {
             for (Class<?> child : testClass.getDeclaredClasses()) {
                 if (containsTests(child)) {
-                    children.add(new NestedRunner(parent, child));
+                    children.add(new LeafFixture(child, new SurroundingFixture(parent.getJavaClass())));
                 }
             }
         }
@@ -124,14 +123,13 @@ public class NestedJUnit extends Runner {
         }
     }
 
-    private class NestedRunner extends BlockJUnit4ClassRunner {
+    private class LeafFixture extends BlockJUnit4ClassRunner {
 
-        private final TestClass parentClass;
-        private Object parent;
+        private final SurroundingFixture parent;
 
-        public NestedRunner(TestClass parentClass, Class<?> testClass) throws InitializationError {
+        public LeafFixture(Class<?> testClass, SurroundingFixture parent) throws InitializationError {
             super(testClass);
-            this.parentClass = parentClass;
+            this.parent = parent;
         }
 
         @Override
@@ -146,26 +144,73 @@ public class NestedJUnit extends Runner {
 
         @Override
         protected Object createTest() throws Exception {
-            parent = parentClass.getJavaClass().newInstance();
-            return getTestClass().getOnlyConstructor().newInstance(parent);
+            return getTestClass().getOnlyConstructor().newInstance(parent.createFreshTest());
         }
 
         @Override
         protected Statement methodBlock(FrameworkMethod method) {
             Statement statement = super.methodBlock(method);
-            statement = withParentBefores(statement);
-            statement = withParentAfters(statement);
+            statement = parent.withParentFixture(method, statement);
             return statement;
         }
+    }
 
-        private Statement withParentBefores(Statement statement) {
-            List<FrameworkMethod> befores = parentClass.getAnnotatedMethods(Before.class);
-            return befores.isEmpty() ? statement : new RunBefores(statement, befores, parent);
+    private static class SurroundingFixture extends BlockJUnit4ClassRunner {
+
+        private Object currentTest;
+        private Statement nestedFixture;
+
+        public SurroundingFixture(Class<?> testClass) throws InitializationError {
+            super(testClass);
         }
 
-        private Statement withParentAfters(Statement statement) {
-            List<FrameworkMethod> afters = parentClass.getAnnotatedMethods(After.class);
-            return afters.isEmpty() ? statement : new RunAfters(statement, afters, parent);
+        @Override
+        protected void validateInstanceMethods(List<Throwable> errors) {
+            // disable; don't fail if has no test methods
+        }
+
+        // XXX: We override methods called by BlockJUnit4ClassRunner.methodBlock()
+        // so that we can change it to surround another test fixture instead of being the leaf fixture itself.
+
+        public Object createFreshTest() throws Exception {
+            currentTest = super.createTest();
+            return createTest();
+        }
+
+        @Override
+        protected Object createTest() throws Exception {
+            if (currentTest == null) {
+                throw new IllegalStateException();
+            }
+            return currentTest;
+        }
+
+        public Statement withParentFixture(FrameworkMethod method, Statement next) {
+            nestedFixture = next;
+            try {
+                return methodBlock(method);
+            } finally {
+                nestedFixture = null;
+                currentTest = null;
+            }
+        }
+
+        @Override
+        protected Statement methodInvoker(FrameworkMethod method, Object test) {
+            if (nestedFixture == null) {
+                throw new IllegalStateException();
+            }
+            return nestedFixture;
+        }
+
+        @Override
+        protected Statement possiblyExpectingExceptions(FrameworkMethod method, Object test, Statement next) {
+            return next;
+        }
+
+        @Override
+        protected Statement withPotentialTimeout(FrameworkMethod method, Object test, Statement next) {
+            return next;
         }
     }
 }

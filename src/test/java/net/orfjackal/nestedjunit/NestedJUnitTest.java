@@ -160,13 +160,12 @@ public class NestedJUnitTest {
     }
 
 
-    @Ignore("not implemented") // TODO
     @Test
     public void evaluates_rules_from_all_levels() {
         Result result = junit.run(RulesOnAllLevels.class);
 
         assertThat("success", result.wasSuccessful(), is(true));
-        assertThat(spy, is(Arrays.asList("R1 start", "R2 start", "L2 test", "R2 end", "L2 end")));
+        assertThat(spy, is(Arrays.asList("R1 start", "R2 start", "L2 test", "R2 end", "R1 end")));
     }
 
     @RunWith(NestedJUnit.class)
