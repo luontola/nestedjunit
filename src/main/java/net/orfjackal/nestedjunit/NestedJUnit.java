@@ -91,7 +91,7 @@ public class NestedJUnit extends Runner {
         }
 
         private void addToChildrenAllNestedClassesWithTests(Class<?> testClass) throws InitializationError {
-            for (Class<?> child : testClass.getDeclaredClasses()) {
+            for (Class<?> child : testClass.getClasses()) {
                 if (containsTests(child)) {
                     children.add(new LeafFixture(child, new SurroundingFixture(parent.getJavaClass())));
                 }
