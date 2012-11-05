@@ -58,6 +58,12 @@ public class NestedJUnit extends Runner {
             protected void validateInstanceMethods(List<Throwable> errors) {
                 // disable; don't fail if has no test methods
             }
+
+            @Override
+            protected Statement classBlock(final RunNotifier notifier) {
+                // XXX: Disabling class rules, because NestedParentRunner will run them around us
+                return childrenInvoker(notifier);
+            }
         };
         level2 = new NestedParentRunner(level1.getTestClass(), testClass);
 
@@ -69,7 +75,6 @@ public class NestedJUnit extends Runner {
 
     @Override
     public void run(RunNotifier notifier) {
-        level1.run(notifier);
         level2.run(notifier);
     }
 
@@ -105,6 +110,19 @@ public class NestedJUnit extends Runner {
                 }
             }
             return false;
+        }
+
+        @Override
+        protected Statement childrenInvoker(final RunNotifier notifier) {
+            // XXX: We have disabled level1's class rules and run our class rules around it
+            final Statement level2 = super.childrenInvoker(notifier);
+            return new Statement() {
+                @Override
+                public void evaluate() throws Throwable {
+                    level1.run(notifier);
+                    level2.evaluate();
+                }
+            };
         }
 
         @Override

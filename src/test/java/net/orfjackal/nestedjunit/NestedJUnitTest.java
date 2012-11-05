@@ -212,7 +212,6 @@ public class NestedJUnitTest {
     }
 
 
-    @Ignore("not implemented") // TODO
     @Test
     public void evaluates_class_rules_from_top_level_around_all_levels() {
         Result result = junit.run(ClassRules.class);
