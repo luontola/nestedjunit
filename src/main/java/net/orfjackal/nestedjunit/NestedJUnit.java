@@ -4,13 +4,11 @@
 
 package net.orfjackal.nestedjunit;
 
-import org.junit.Test;
-import org.junit.runner.*;
+import org.junit.runner.Description;
 import org.junit.runner.notification.RunNotifier;
-import org.junit.runners.*;
+import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.*;
 
-import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -46,102 +44,49 @@ import java.util.*;
  *
  * @author Esko Luontola
  */
-public class NestedJUnit extends Runner {
+public class NestedJUnit extends BlockJUnit4ClassRunner {
 
-    private final BlockJUnit4ClassRunner level1;
-    private final NestedParentRunner level2;
-    private final Description description;
+    private final List<LeafFixture> level2 = new ArrayList<LeafFixture>();
 
     public NestedJUnit(Class<?> testClass) throws InitializationError {
-        level1 = new BlockJUnit4ClassRunner(testClass) {
-            @Override
-            protected void validateInstanceMethods(List<Throwable> errors) {
-                // disable; don't fail if has no test methods
-            }
+        super(testClass);
 
-            @Override
-            protected Statement classBlock(final RunNotifier notifier) {
-                // XXX: Disabling class rules, because NestedParentRunner will run them around us
-                return childrenInvoker(notifier);
-            }
-        };
-        level2 = new NestedParentRunner(level1.getTestClass(), testClass);
-
-        description = level1.getDescription();
-        for (Description child : level2.getDescription().getChildren()) {
-            description.addChild(child);
+        for (Class<?> nestedClass : testClass.getClasses()) {
+            level2.add(new LeafFixture(nestedClass, new SurroundingFixture(testClass)));
         }
     }
 
+    // TODO: Override computeTestMethods() instead and require at least one level 1 or 2 test
     @Override
-    public void run(RunNotifier notifier) {
-        level2.run(notifier);
+    protected void validateInstanceMethods(List<Throwable> errors) {
+        // disable; don't fail if the top level has no test methods
+    }
+
+    @Override
+    protected Statement childrenInvoker(final RunNotifier notifier) {
+        final Statement level1 = super.childrenInvoker(notifier);
+        return new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                level1.evaluate();
+                for (LeafFixture leafFixture : level2) {
+                    leafFixture.run(notifier);
+                }
+            }
+        };
     }
 
     @Override
     public Description getDescription() {
+        Description description = super.getDescription();
+        for (LeafFixture leafFixture : level2) {
+            description.addChild(leafFixture.getDescription());
+        }
         return description;
     }
 
 
-    private class NestedParentRunner extends ParentRunner<Runner> {
-
-        private final List<Runner> children = new ArrayList<Runner>();
-        private final TestClass parent;
-
-        public NestedParentRunner(TestClass parent, Class<?> testClass) throws InitializationError {
-            super(testClass);
-            this.parent = parent;
-            addToChildrenAllNestedClassesWithTests(testClass);
-        }
-
-        private void addToChildrenAllNestedClassesWithTests(Class<?> testClass) throws InitializationError {
-            for (Class<?> child : testClass.getClasses()) {
-                if (containsTests(child)) {
-                    children.add(new LeafFixture(child, new SurroundingFixture(parent.getJavaClass())));
-                }
-            }
-        }
-
-        private boolean containsTests(Class<?> clazz) {
-            for (Method method : clazz.getMethods()) {
-                if (method.getAnnotation(Test.class) != null) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        protected Statement childrenInvoker(final RunNotifier notifier) {
-            // XXX: We have disabled level1's class rules and run our class rules around it
-            final Statement level2 = super.childrenInvoker(notifier);
-            return new Statement() {
-                @Override
-                public void evaluate() throws Throwable {
-                    level1.run(notifier);
-                    level2.evaluate();
-                }
-            };
-        }
-
-        @Override
-        protected List<Runner> getChildren() {
-            return children;
-        }
-
-        @Override
-        protected Description describeChild(Runner child) {
-            return child.getDescription();
-        }
-
-        @Override
-        protected void runChild(Runner child, RunNotifier notifier) {
-            child.run(notifier);
-        }
-    }
-
-    private class LeafFixture extends BlockJUnit4ClassRunner {
+    private static class LeafFixture extends BlockJUnit4ClassRunner {
 
         private final SurroundingFixture parent;
 
@@ -184,7 +129,7 @@ public class NestedJUnit extends Runner {
 
         @Override
         protected void validateInstanceMethods(List<Throwable> errors) {
-            // disable; don't fail if has no test methods
+            // disable; don't fail if the top level has no test methods
         }
 
         // XXX: We override methods called by BlockJUnit4ClassRunner.methodBlock()
