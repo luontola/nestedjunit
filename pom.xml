@@ -13,8 +13,9 @@
     <artifactId>nestedjunit</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <name>NestedJUnit</name>
     <description>
-        JUnit tests organized in a hierarchy of inner classes which share common setup
+        Nested contexts for JUnit to organize tests better
     </description>
     <url>https://github.com/orfjackal/nestedjunit</url>
     <inceptionYear>2009</inceptionYear>
@@ -152,12 +153,6 @@
                     </configuration>
                 </plugin>
 
-                <plugin>
-                    <groupId>org.pitest</groupId>
-                    <artifactId>pitest-maven</artifactId>
-                    <version>0.28</version>
-                </plugin>
-
             </plugins>
         </pluginManagement>
     </build>
@@ -170,6 +165,7 @@
                     <plugin>
                         <groupId>org.pitest</groupId>
                         <artifactId>pitest-maven</artifactId>
+                        <version>0.28</version>
                         <executions>
                             <execution>
                                 <goals>
