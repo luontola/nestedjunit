@@ -162,14 +162,14 @@ public class NestedJUnitTest {
 
     @Test
     public void evaluates_rules_from_all_levels() {
-        Result result = junit.run(RulesOnAllLevels.class);
+        Result result = junit.run(Rules.class);
 
         assertThat("success", result.wasSuccessful(), is(true));
         assertThat(spy, is(Arrays.asList("R1 start", "R2 start", "L2 test", "R2 end", "R1 end")));
     }
 
     @RunWith(NestedJUnit.class)
-    public static class RulesOnAllLevels {
+    public static class Rules {
 
         @Rule
         public SpyRule rule1 = new SpyRule("R1 start", "R1 end");
@@ -212,6 +212,55 @@ public class NestedJUnitTest {
     }
 
 
+    @Ignore("not implemented") // TODO
+    @Test
+    public void evaluates_class_rules_from_top_level_around_all_levels() {
+        Result result = junit.run(ClassRules.class);
+
+        assertThat("success", result.wasSuccessful(), is(true));
+        assertThat(spy, is(Arrays.asList("CR start", "before class", "L1 tests", "L2 tests", "after class", "CR end")));
+    }
+
+    @RunWith(NestedJUnit.class)
+    public static class ClassRules {
+
+        @ClassRule
+        public static SpyRule rule = new SpyRule("CR start", "CR end");
+
+        @BeforeClass
+        public static void before() {
+            spy.add("before class");
+        }
+
+        @AfterClass
+        public static void afterClass() {
+            spy.add("after class");
+        }
+
+        @Test
+        public void foo() {
+            spy.add("L1 tests");
+        }
+
+        @Test
+        public void bar() {
+        }
+
+        public class Foo {
+
+            @Test
+            public void foo() {
+                spy.add("L2 tests");
+            }
+
+            @Test
+            public void bar() {
+            }
+        }
+    }
+
+
     // TODO: level 3 (arbitrary) nesting
     // TODO: raise an exception if there are no tests in any of the levels
+    // TODO: static member classes with tests? error, ignore, or run without parent fixture?
 }
