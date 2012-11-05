@@ -70,3 +70,19 @@ public class StackTest {
 [naming-tests]:  http://blog.orfjackal.net/2010/02/three-styles-of-naming-tests.html
 [download]:      http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22net.orfjackal.nestedjunit%22
 [StackTest]:     https://github.com/orfjackal/nestedjunit/blob/master/src/test/java/net/orfjackal/nestedjunit/StackTest.java
+
+
+Version History
+---------------
+
+**1.0.0 (2012-11-05)**
+
+- Runs `@Test` annotated test methods from two levels: the topmost test class (same as JUnit) and its non-static member classes
+- Runs `@Before`, `@After` and `@Rule` from all levels
+- Runs `@BeforeClass`, `@AfterClass` and `@ClassRule` from the topmost level
+- The nested test classes have access to member variables from the topmost test class, and any side effects are isolated the same way as in JUnit
+
+Known issues:
+
+- Fails if a test class contains public member classes which do not have test methods
+- Does not fail if there are no tests in a test class nor its nested test classes
