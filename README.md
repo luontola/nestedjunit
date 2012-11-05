@@ -7,7 +7,9 @@ test classes can reuse the context from the outermost test class. This
 makes it easier to write [expressive tests][naming-tests].
 
 NestedJUnit can be downloaded from [Maven Central][download] and is
-licensed under Apache License 2.0.
+licensed under Apache License 2.0. NestedJUnit used to be embedded in
+[TDD Tetris Tutorial][tdd-tutorial], but due to popular demand is now
+available as a standalone library.
 
 As a usage example, have a look at [StackTest]:
 
@@ -69,6 +71,7 @@ public class StackTest {
 
 [naming-tests]:  http://blog.orfjackal.net/2010/02/three-styles-of-naming-tests.html
 [download]:      http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22net.orfjackal.nestedjunit%22
+[tdd-tutorial]:  https://github.com/orfjackal/tdd-tetris-tutorial
 [StackTest]:     https://github.com/orfjackal/nestedjunit/blob/master/src/test/java/net/orfjackal/nestedjunit/StackTest.java
 
 
