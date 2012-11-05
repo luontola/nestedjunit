@@ -259,6 +259,7 @@ public class NestedJUnitTest {
     }
 
 
+    // FIXME: fails if the test class contains public (static or non-static) non-test member classes
     // TODO: level 3 (arbitrary) nesting
     // TODO: raise an exception if there are no tests in any of the levels
     // TODO: static member classes with tests? error, ignore, or run without parent fixture?
